@@ -1,0 +1,274 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum OnlineStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+  BUSY
+  INVISIBLE
+}
+
+enum PrivacyOption {
+  EVERYONE
+  FRIENDS
+  NOBODY
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  SYSTEM
+}
+
+model User {
+  id            String          @id @default(uuid())
+  username      String?         @unique
+  displayName   String?
+  email         String?         @unique
+  passwordHash  String?
+  isGuest       Boolean         @default(true)
+  isVerified    Boolean         @default(false)
+  isPremium     Boolean         @default(false)
+  role          String          @default("USER")
+  onlineStatus  OnlineStatus    @default(OFFLINE)
+  lastSeen      DateTime        @default(now())
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  profile       Profile?
+  settings      UserSettings?
+  sessions      Session[]
+  refreshTokens RefreshToken[]
+  devices       Device[]
+  presences     Presence[]
+  blockedByMe   BlockedUser[]   @relation("BlockerRelation")
+  blockedMe     BlockedUser[]   @relation("BlockedRelation")
+  reportsFiled  Report[]        @relation("ReporterRelation")
+  reportsAgainst Report[]       @relation("ReportedRelation")
+  notifications Notification[]
+  sentFriendRequests     FriendRequest[] @relation("SentFriendRequests")
+  receivedFriendRequests FriendRequest[] @relation("ReceivedFriendRequests")
+  friendships            Friendship[]    @relation("UserFriendships")
+  friendOf               Friendship[]    @relation("FriendFriendships")
+  sentMessages           Message[]       @relation("SentMessages")
+  receivedMessages       Message[]       @relation("ReceivedMessages")
+  aiDetections           AiDetectionLog[]
+}
+
+model Profile {
+  id               String      @id @default(uuid())
+  userId           String      @unique
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo            String?
+  bio              String?
+  age              Int?
+  gender           String?
+  countryId        String?
+  country          Country?    @relation(fields: [countryId], references: [id])
+  city             String?
+  languageId       String?
+  language         Language?   @relation("PrimaryLanguage", fields: [languageId], references: [id])
+  secondLanguageId String?
+  secondLanguage   Language?   @relation("SecondLanguage", fields: [secondLanguageId], references: [id])
+  interests        Interest[]  @relation("ProfileInterests")
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model UserSettings {
+  id                    String        @id @default(uuid())
+  userId                String        @unique
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  whoCanMessage         PrivacyOption @default(EVERYONE)
+  whoCanCall            PrivacyOption @default(EVERYONE)
+  showOnlineStatus      Boolean       @default(true)
+  showAge               Boolean       @default(true)
+  showCountry           Boolean       @default(true)
+  showLanguage          Boolean       @default(true)
+  allowTranslation      Boolean       @default(true)
+  autoPlayVoice         Boolean       @default(false)
+  autoPlayVideo         Boolean       @default(false)
+  darkMode              Boolean       @default(true)
+  emailNotifications    Boolean       @default(true)
+  pushNotifications     Boolean       @default(true)
+  messageNotifications  Boolean       @default(true)
+  marketingNotifications Boolean      @default(false)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  ipAddress String?
+  ipHash    String?
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Device {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceType String?
+  browser    String?
+  os         String?
+  ipHash     String?
+  country    String?
+  language   String?
+  timezone   String?
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+}
+
+model Presence {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  socketId    String   @unique
+  status      String   @default("ONLINE")
+  deviceId    String?
+  country     String?
+  language    String?
+  timezone    String?
+  ipHash      String?
+  connectedAt DateTime @default(now())
+  lastPingAt  DateTime @default(now())
+}
+
+model BlockedUser {
+  id        String   @id @default(uuid())
+  blockerId String
+  blocker   User     @relation("BlockerRelation", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlockedRelation", fields: [blockedId], references: [id], onDelete: Cascade)
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model Report {
+  id         String       @id @default(uuid())
+  reporterId String
+  reporter   User         @relation("ReporterRelation", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedId String
+  reported   User         @relation("ReportedRelation", fields: [reportedId], references: [id], onDelete: Cascade)
+  reason     String
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
+
+model Country {
+  id       String    @id @default(uuid())
+  code     String    @unique
+  name     String
+  flag     String?
+  profiles Profile[]
+}
+
+model Language {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  name            String
+  nativeName      String?
+  primaryProfiles Profile[] @relation("PrimaryLanguage")
+  secondProfiles  Profile[] @relation("SecondLanguage")
+}
+
+model Interest {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  category String?
+  profiles Profile[] @relation("ProfileInterests")
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model FriendRequest {
+  id         String              @id @default(uuid())
+  senderId   String
+  sender     User                @relation("SentFriendRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User                @relation("ReceivedFriendRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+  status     FriendRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  @@unique([senderId, receiverId])
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friendId  String
+  friend    User     @relation("FriendFriendships", fields: [friendId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, friendId])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String?
+  receiver   User?    @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  channelId  String?
+  content    String
+  mediaUrl   String?
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model AiDetectionLog {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  detectionType String
+  resultJson    String
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+}
+

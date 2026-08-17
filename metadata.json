@@ -1,0 +1,6 @@
+{
+  "name": "justyou",
+  "description": "Global real-time communication platform foundation with Apple, Discord, Notion & Linear inspired design system.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

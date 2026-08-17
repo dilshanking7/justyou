@@ -1,0 +1,17 @@
+{
+  "short_name": "JustYou",
+  "name": "JustYou Live Video Chat & Social Platform",
+  "icons": [
+    {
+      "src": "https://api.dicebear.com/7.x/bottts/svg?seed=JustYouApp",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#020617",
+  "theme_color": "#6366f1",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "description": "Real-time 1-on-1 video chat, global matchmaking, instant language translation, and live social network."
+}
