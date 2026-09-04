@@ -46,6 +46,9 @@ async function startServer() {
   // Serve uploads statically
   app.use('/uploads', express.static(UPLOADS_DIR));
 
+  // Serve public folder for static files like verification files
+  app.use(express.static(path.join(process.cwd(), 'public')));
+
   // API Routes with Rate Limiting
   app.use('/api', apiRateLimiter, apiRoutes);
 
